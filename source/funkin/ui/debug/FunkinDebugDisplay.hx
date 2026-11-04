@@ -5,6 +5,7 @@ import funkin.ui.debug.stats.FunkinStatsGraph;
 import funkin.util.MemoryUtil;
 import openfl.display.Shape;
 import openfl.display.Sprite;
+import openfl.filters.DropShadowFilter;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
 import openfl.Lib;
@@ -15,9 +16,32 @@ import openfl.Lib;
 class FunkinDebugDisplay extends Sprite
 {
   static final UPDATE_DELAY:Int = 100;
-  static final INNER_RECT_DIFF:Int = 3;
-  static final OUTER_RECT_DIMENSIONS:Array<Int> = [234, 201];
   static final OTHERS_OFFSET:Int = 8;
+
+  static final ADVANCED_WIDTH:Int = 240;
+  static final ADVANCED_BASE_HEIGHT:Int = 104;
+  static final ADVANCED_MEM_BLOCK_HEIGHT:Int = 46;
+  static final FPS_GRAPH_HEIGHT:Int = 34;
+  static final MEM_GRAPH_HEIGHT:Int = 22;
+
+  static final PANEL_RADIUS:Int = 8;
+  static final ACCENT_HEIGHT:Int = 3;
+  static final COLOR_PANEL:Int = 0x14171A;
+  static final COLOR_PANEL_BORDER:Int = 0x2E3338;
+  static final COLOR_TEXT_DIM:Int = 0xB4BCC4;
+
+  /**
+   * Accent colors, picked by how close the FPS is to the target framerate.
+   */
+  static final COLOR_GOOD:Int = 0x43E97B;
+  static final COLOR_OKAY:Int = 0xFFC145;
+  static final COLOR_BAD:Int = 0xFF4D6D;
+
+  /**
+   * Graph colors for the memory counters of the advanced display.
+   */
+  static final COLOR_GC_MEM:Int = 0x5CC8FF;
+  static final COLOR_TASK_MEM:Int = 0xB388FF;
 
   /**
    * Indicates whether the debug display is in advanced mode.
@@ -39,6 +63,11 @@ class FunkinDebugDisplay extends Sprite
   var taskMem:Float;
   var taskMemPeak:Float;
   var background:Shape;
+  var accent:Shape;
+  var accentColor:Int = -1;
+  var panelWidth:Float = 0;
+  var fpsText:TextField;
+  var statsText:TextField;
   var fpsGraph:FunkinStatsGraph;
   var gcMemGraph:FunkinStatsGraph;
   var taskMemGraph:FunkinStatsGraph;
@@ -70,34 +99,32 @@ class FunkinDebugDisplay extends Sprite
   {
     removeChildren(0, numChildren);
 
-    var bgWidthMultiplier:Float = advanced ? 1 : 0.3;
+    var memLines:Int = (MemoryUtil.supportsGCMem() ? 1 : 0) + (MemoryUtil.supportsTaskMem() ? 1 : 0);
 
-    if (MemoryUtil.supportsGCMem() || MemoryUtil.supportsTaskMem())
+    var panelHeight:Float;
+    if (advanced)
     {
-      bgWidthMultiplier = 1;
+      panelWidth = ADVANCED_WIDTH;
+      panelHeight = ADVANCED_BASE_HEIGHT + (memLines * ADVANCED_MEM_BLOCK_HEIGHT);
     }
-
-    var bgHeightMultiplier:Float = advanced ? 0.45 : 0.15;
-
-    if (MemoryUtil.supportsGCMem() && MemoryUtil.supportsTaskMem())
+    else
     {
-      bgHeightMultiplier = advanced ? 1 : 0.3;
-    }
-    else if (MemoryUtil.supportsGCMem() || MemoryUtil.supportsTaskMem())
-    {
-      bgHeightMultiplier = advanced ? 0.7 : 0.2;
+      panelWidth = memLines > 0 ? 210 : 140;
+      panelHeight = 46 + (memLines * 15);
     }
 
     background = new Shape();
-    background.graphics.beginFill(0x3D3F41, 1);
-    background.graphics.drawRect(0, 0, (OUTER_RECT_DIMENSIONS[0] * bgWidthMultiplier) + (INNER_RECT_DIFF * 2),
-      (OUTER_RECT_DIMENSIONS[1] * bgHeightMultiplier) + (INNER_RECT_DIFF * 2));
-    background.graphics.endFill();
-    background.graphics.beginFill(0x2C2F30, 1);
-    background.graphics.drawRect(INNER_RECT_DIFF, INNER_RECT_DIFF, OUTER_RECT_DIMENSIONS[0] * bgWidthMultiplier, OUTER_RECT_DIMENSIONS[1] * bgHeightMultiplier);
+    background.graphics.lineStyle(1, COLOR_PANEL_BORDER, 1);
+    background.graphics.beginFill(COLOR_PANEL, 1);
+    background.graphics.drawRoundRect(0, 0, panelWidth, panelHeight, PANEL_RADIUS * 2, PANEL_RADIUS * 2);
     background.graphics.endFill();
     background.alpha = backgroundOpacity;
     addChild(background);
+
+    accent = new Shape();
+    accentColor = -1;
+    addChild(accent);
+    updateAccent();
 
     if (advanced)
     {
@@ -113,42 +140,103 @@ class FunkinDebugDisplay extends Sprite
 
   function createAdvancedElements():Void
   {
-    var graphsWidth:Int = OUTER_RECT_DIMENSIONS[0] + (INNER_RECT_DIFF * 2) - (OTHERS_OFFSET * 3);
-    var graphsHeight:Int = 25;
+    createFpsText();
 
-    fpsGraph = new FunkinStatsGraph(OTHERS_OFFSET, OTHERS_OFFSET + 49, graphsWidth, graphsHeight, color);
-    fpsGraph.textDisplay.y = -49;
+    // Min / average / peak FPS, dimmed below the big number.
+    statsText = createDimText(OTHERS_OFFSET + 2, 42);
+    addChild(statsText);
+
+    var graphsWidth:Int = ADVANCED_WIDTH - (OTHERS_OFFSET * 2) - 4;
+    var graphY:Int = 60;
+
+    fpsGraph = new FunkinStatsGraph(OTHERS_OFFSET, graphY, graphsWidth, FPS_GRAPH_HEIGHT, accentColor);
+    fpsGraph.textDisplay.visible = false;
     fpsGraph.minValue = 0;
     addChild(fpsGraph);
+    graphY += FPS_GRAPH_HEIGHT + 24;
 
     if (MemoryUtil.supportsGCMem())
     {
-      gcMemGraph = new FunkinStatsGraph(OTHERS_OFFSET, Math.floor(OTHERS_OFFSET + (fpsGraph.y + fpsGraph.axisHeight) + 22), graphsWidth, graphsHeight, color);
+      gcMemGraph = new FunkinStatsGraph(OTHERS_OFFSET, graphY, graphsWidth, MEM_GRAPH_HEIGHT, COLOR_GC_MEM);
       gcMemGraph.minValue = 0;
       addChild(gcMemGraph);
+      graphY += MEM_GRAPH_HEIGHT + 24;
     }
 
     if (MemoryUtil.supportsTaskMem())
     {
-      taskMemGraph = new FunkinStatsGraph(OTHERS_OFFSET, Math.floor(OTHERS_OFFSET + (gcMemGraph.y + gcMemGraph.axisHeight) + 22), graphsWidth, graphsHeight,
-        color);
+      taskMemGraph = new FunkinStatsGraph(OTHERS_OFFSET, graphY, graphsWidth, MEM_GRAPH_HEIGHT, COLOR_TASK_MEM);
       taskMemGraph.minValue = 0;
       addChild(taskMemGraph);
     }
   }
 
+  /**
+   * Creates the big FPS number, followed by a small "FPS" label and the frame time.
+   */
+  function createFpsText():Void
+  {
+    fpsText = createDimText(OTHERS_OFFSET + 2, ACCENT_HEIGHT + 2);
+    fpsText.autoSize = LEFT;
+    fpsText.defaultTextFormat = new TextFormat('_sans', 12, COLOR_TEXT_DIM, true);
+    addChild(fpsText);
+  }
+
+  /**
+   * Creates a small dimmed text field with a drop shadow, so it stays readable on any background.
+   */
+  function createDimText(x:Float, y:Float):TextField
+  {
+    var text:TextField = new TextField();
+    text.x = x;
+    text.y = y;
+    text.width = panelWidth - (OTHERS_OFFSET * 2);
+    text.selectable = false;
+    text.mouseEnabled = false;
+    text.defaultTextFormat = new TextFormat('_sans', 11, COLOR_TEXT_DIM);
+    text.antiAliasType = NORMAL;
+    text.multiline = true;
+    text.filters = [new DropShadowFilter(1, 45, 0x000000, 0.9, 2, 2, 1.5)];
+    return text;
+  }
+
   function createSimpleElements():Void
   {
-    infoDisplay = new TextField();
-    infoDisplay.x = OTHERS_OFFSET;
-    infoDisplay.y = OTHERS_OFFSET;
-    infoDisplay.width = 500;
-    infoDisplay.selectable = false;
-    infoDisplay.mouseEnabled = false;
-    infoDisplay.defaultTextFormat = new TextFormat('Monsterrat', 12, color, JUSTIFY);
-    infoDisplay.antiAliasType = NORMAL;
-    infoDisplay.multiline = true;
+    createFpsText();
+
+    // Memory counters, dimmed below the FPS.
+    infoDisplay = createDimText(OTHERS_OFFSET + 2, 42);
     addChild(infoDisplay);
+  }
+
+  /**
+   * Picks the accent color from how close the current FPS is to the target framerate.
+   */
+  function getStatusColor():Int
+  {
+    var target:Float = (Lib.current.stage != null) ? Lib.current.stage.frameRate : 60;
+    // An uncapped framerate reports 0, so treat anything below 60 as a 60 FPS target.
+    if (target < 60) target = 60;
+
+    var ratio:Float = fps / target;
+    if (ratio >= 0.9) return COLOR_GOOD;
+    if (ratio >= 0.6) return COLOR_OKAY;
+    return COLOR_BAD;
+  }
+
+  /**
+   * Redraws the colored stripe on top of the panel, if the status color changed.
+   */
+  function updateAccent():Void
+  {
+    var newColor:Int = getStatusColor();
+    if (newColor == accentColor) return;
+    accentColor = newColor;
+
+    accent.graphics.clear();
+    accent.graphics.beginFill(accentColor, 1);
+    accent.graphics.drawRoundRect(PANEL_RADIUS, 0, panelWidth - (PANEL_RADIUS * 2), ACCENT_HEIGHT, 3, 3);
+    accent.graphics.endFill();
   }
 
   override function __enterFrame(deltaTime:Float):Void
@@ -186,6 +274,8 @@ class FunkinDebugDisplay extends Sprite
       if (taskMem > taskMemPeak) taskMemPeak = taskMem;
     }
 
+    updateAccent();
+
     if (isAdvanced)
     {
       updateAdvancedDisplay();
@@ -204,30 +294,42 @@ class FunkinDebugDisplay extends Sprite
     updateGcMemGraph();
     updateTaskMemGraph();
 
-    var info:Array<String> = [];
-    info.push('FPS: $fps');
-    info.push('AVG FPS: ${Math.floor(fpsGraph.average())}');
-    info.push('1% LOW FPS: ${Math.floor(fpsGraph.lowest())}');
-    fpsGraph.textDisplay.text = info.join('\n');
+    updateFpsText();
+
+    statsText.text = 'AVG ${Math.floor(fpsGraph.average())}    MIN ${Math.floor(fpsGraph.lowest())}    PEAK $fpsPeak';
 
     if (gcMemGraph != null)
     {
-      gcMemGraph.textDisplay.text = 'GC MEM: ${FlxStringUtil.formatBytes(gcMem).toLowerCase()} / ${FlxStringUtil.formatBytes(gcMemPeak).toLowerCase()}';
+      gcMemGraph.textDisplay.text = 'GC MEM  ${FlxStringUtil.formatBytes(gcMem).toLowerCase()} / ${FlxStringUtil.formatBytes(gcMemPeak).toLowerCase()}';
     }
 
     if (taskMemGraph != null)
     {
-      taskMemGraph.textDisplay.text = 'TASK MEM: ${FlxStringUtil.formatBytes(taskMem).toLowerCase()} / ${FlxStringUtil.formatBytes(taskMemPeak).toLowerCase()}';
+      taskMemGraph.textDisplay.text = 'TASK MEM  ${FlxStringUtil.formatBytes(taskMem).toLowerCase()} / ${FlxStringUtil.formatBytes(taskMemPeak).toLowerCase()}';
     }
+  }
+
+  /**
+   * Updates the big FPS number, colored by the current status, and the frame time.
+   */
+  function updateFpsText():Void
+  {
+    if (fpsText == null) return;
+
+    var digits:String = Std.string(fps);
+    var frameTime:Float = fps > 0 ? Math.round(Constants.MS_PER_SEC / fps * 10) / 10 : 0;
+
+    fpsText.text = '$digits FPS   $frameTime ms';
+    fpsText.setTextFormat(new TextFormat('_sans', 28, accentColor, true), 0, digits.length);
   }
 
   function updateSimpleDisplay():Void
   {
+    updateFpsText();
+
     if (infoDisplay != null)
     {
       var info:Array<String> = [];
-
-      info.push('FPS: $fps');
 
       if (MemoryUtil.supportsGCMem())
       {
@@ -245,6 +347,7 @@ class FunkinDebugDisplay extends Sprite
 
   function updateFPSGraph():Void
   {
+    fpsGraph.graphColor = accentColor;
     fpsGraph.maxValue = fpsPeak;
     fpsGraph.update(fps);
   }

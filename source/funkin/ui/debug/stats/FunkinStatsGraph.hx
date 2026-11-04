@@ -10,7 +10,8 @@ import openfl.text.TextFormat;
 class FunkinStatsGraph extends Sprite
 {
   static inline var AXIS_COLOR:FlxColor = 0xffffff;
-  static inline var AXIS_ALPHA:Float = 0.5;
+  static inline var AXIS_ALPHA:Float = 0.2;
+  static inline var FILL_ALPHA:Float = 0.2;
   static inline var HISTORY_MAX:Int = 100;
 
   public var minValue:Float = FlxMath.MAX_VALUE_FLOAT;
@@ -37,7 +38,7 @@ class FunkinStatsGraph extends Sprite
     textDisplay.y -= 22;
     textDisplay.selectable = false;
     textDisplay.mouseEnabled = false;
-    textDisplay.defaultTextFormat = new TextFormat('Monsterrat', 12, graphColor, JUSTIFY);
+    textDisplay.defaultTextFormat = new TextFormat('_sans', 11, graphColor, true);
     textDisplay.antiAliasType = NORMAL;
     textDisplay.sharpness = 100;
     textDisplay.multiline = true;
@@ -54,11 +55,8 @@ class FunkinStatsGraph extends Sprite
   {
     axis.graphics.clear();
 
+    // Only a faint baseline, the graph itself is drawn as a filled area.
     axis.graphics.lineStyle(1, AXIS_COLOR, AXIS_ALPHA, false, null, null, MITER, 255);
-
-    axis.graphics.moveTo(0, 0);
-
-    axis.graphics.lineTo(0, axisHeight);
 
     axis.graphics.moveTo(0, axisHeight);
 
@@ -69,8 +67,6 @@ class FunkinStatsGraph extends Sprite
   {
     graphics.clear();
 
-    graphics.lineStyle(1, graphColor, 1, false, null, null, MITER, 255);
-
     if (history.length == 0)
     {
       return;
@@ -80,11 +76,31 @@ class FunkinStatsGraph extends Sprite
     var range:Float = Math.max(maxValue - minValue, maxValue * 0.1);
     var scale:Float = axisHeight / range;
 
+    var firstX:Float = axis.x + 1;
+    var lastX:Float = axis.x + 1 + ((history.length - 1) * inc);
+
+    // Translucent area under the line.
+    graphics.lineStyle();
+    graphics.beginFill(graphColor, FILL_ALPHA);
+    graphics.moveTo(firstX, axisHeight);
+
+    for (i in 0...history.length)
+    {
+      final pointY:Float = axisHeight - ((history[i] - minValue) * scale) - 1;
+      graphics.lineTo(axis.x + 1 + (i * inc), pointY);
+    }
+
+    graphics.lineTo(lastX, axisHeight);
+    graphics.endFill();
+
+    // The line itself, slightly thicker than the axis.
+    graphics.lineStyle(1.5, graphColor, 1, false, null, null, ROUND, 255);
+
     for (i in 0...history.length)
     {
       final pointY:Float = axisHeight - ((history[i] - minValue) * scale) - 1;
 
-      if (i == 0) graphics.moveTo(axis.x, pointY);
+      if (i == 0) graphics.moveTo(axis.x + 1, pointY);
 
       graphics.lineTo(axis.x + 1 + (i * inc), pointY);
     }

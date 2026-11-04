@@ -98,6 +98,12 @@ class FunkinMemory
    */
   public static inline function purgeCache(callGarbageCollector:Bool = false):Void
   {
+    if (Preferences.cacheAssets)
+    {
+      log('Asset caching is enabled, keeping cached assets.');
+      return;
+    }
+
     trace(' CLEARING CACHE '.bg_bright_lilac().bold() +  ' Disposing all cached textures, assets and sounds...');
 
     preparePurgeTextureCache();
@@ -431,6 +437,8 @@ class FunkinMemory
    */
   public static inline function clearFreeplay():Void
   {
+    if (Preferences.cacheAssets) return;
+
     var keysToRemove:Array<String> = [];
 
     @:privateAccess
@@ -465,6 +473,8 @@ class FunkinMemory
    */
   public static inline function clearStickers():Void
   {
+    if (Preferences.cacheAssets) return;
+
     var keysToRemove:Array<String> = [];
 
     @:privateAccess

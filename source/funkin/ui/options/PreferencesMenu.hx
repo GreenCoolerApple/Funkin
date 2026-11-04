@@ -124,7 +124,8 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
       function(value:Bool):Void
       {
         Preferences.middlescroll = value;
-      }, Preferences.middlescroll);
+      }, Preferences.middlescroll, #if mobile ControlsHandler.hasExternalInputDevice
+      || Preferences.controlsScheme != FunkinHitboxControlSchemes.Arrows #end);
     createPrefItemPercentage('Strumline Background', 'Show a semi-transparent background behind the strumline.', function(value:Int):Void
     {
       Preferences.strumlineBackgroundOpacity = value;
@@ -220,6 +221,12 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
         Preferences.framerate = Std.int(value);
       }, null, Preferences.framerate, 30, 500, 5, 0);
     #end
+    createPrefItemCheckbox('Asset Caching',
+      'When enabled, textures and sounds stay cached when changing screens.\nLoads faster and stutters less, but uses more memory.',
+      function(value:Bool):Void
+      {
+        Preferences.cacheAssets = value;
+      }, Preferences.cacheAssets);
 
     #if FEATURE_SCREENSHOTS
     createPrefItemCheckbox('Hide Mouse', 'When enabled, the mouse is hidden while taking a screenshot.', function(value:Bool):Void

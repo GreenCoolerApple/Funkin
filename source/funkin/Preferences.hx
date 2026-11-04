@@ -1,6 +1,7 @@
 package funkin;
 
 #if mobile
+import funkin.mobile.input.ControlsHandler;
 import funkin.mobile.ui.FunkinHitbox;
 import funkin.mobile.util.InAppPurchasesUtil;
 #end
@@ -119,6 +120,10 @@ class Preferences
 
   static function get_middlescroll():Bool
   {
+    #if mobile
+    // The Arrows control scheme has its own fixed layout, so middlescroll is locked off there.
+    if (!ControlsHandler.hasExternalInputDevice && controlsScheme == FunkinHitboxControlSchemes.Arrows) return false;
+    #end
     return Save?.instance?.options?.middlescroll ?? false;
   }
 
@@ -126,6 +131,26 @@ class Preferences
   {
     var save:Save = Save.instance;
     save.options.middlescroll = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If enabled, textures and sounds stay cached in memory instead of being purged when changing screens.
+   * Loads faster and stutters less, but uses more memory.
+   * @default `false`
+   */
+  public static var cacheAssets(get, set):Bool;
+
+  static function get_cacheAssets():Bool
+  {
+    return Save?.instance?.options?.cacheAssets ?? false;
+  }
+
+  static function set_cacheAssets(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.cacheAssets = value;
     Save.system.flush();
     return value;
   }

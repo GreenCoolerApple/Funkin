@@ -101,6 +101,7 @@ class Save implements ConsoleClass
         naughtyness: true,
         downscroll: false,
         middlescroll: false,
+        cacheAssets: false,
         flashingLights: true,
         zoomCamera: true,
         debugDisplay: 'Off',
@@ -1127,6 +1128,12 @@ typedef SaveDataOptions =
    * @default `false`
    */
   var middlescroll:Bool;
+
+  /**
+   * If enabled, textures and sounds stay cached in memory instead of being purged when changing screens.
+   * @default `false`
+   */
+  var cacheAssets:Bool;
 
   /**
    * If disabled, flashing lights in the main menu and other areas will be less intense.
