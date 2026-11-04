@@ -1,0 +1,175 @@
+# Builds the game for every supported platform on GitHub-hosted runners.
+# Unlike build-game.yml, this needs no private runners, secrets or itch.io upload,
+# so it works on a personal fork.
+
+name: Build all platforms
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-defines:
+        type: string
+        description: Build defines to use
+        default: '-DGITHUB_BUILD'
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HAXE_VERSION: 4.3.7
+  BUILD_DEFINES: ${{ github.event.inputs.build-defines || '-DGITHUB_BUILD' }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            target: windows
+            os: windows-latest
+            flags: -release
+          - name: Linux
+            target: linux
+            os: ubuntu-22.04
+            flags: -release
+          - name: macOS
+            target: mac
+            os: macos-latest
+            flags: -release
+          - name: HTML5
+            target: html5
+            os: ubuntu-22.04
+            flags: -release
+          # Android is built in debug mode so it is signed with the debug keystore;
+          # a release build would need KEYSTORE_* secrets in .env.
+          - name: Android
+            target: android
+            os: ubuntu-22.04
+            flags: -debug
+          # No Apple account is available on CI, so only the unsigned simulator build is attempted.
+          - name: iOS (simulator)
+            target: ios
+            os: macos-latest
+            flags: -simulator -debug
+            experimental: true
+    continue-on-error: ${{ matrix.experimental == true }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # The art submodule is not needed to build the game.
+          submodules: false
+
+      - name: Checkout assets submodule
+        run: |
+          git submodule update --init --depth 1 assets
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Linux dependencies
+        if: ${{ runner.os == 'Linux' && matrix.target == 'linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            g++ \
+            libx11-dev libxi-dev libxext-dev libxinerama-dev libxrandr-dev \
+            libgl-dev libgl1-mesa-dev \
+            libasound2-dev libpulse-dev \
+            libvlc-dev libvlccore-dev
+
+      - name: Setup JDK
+        if: ${{ matrix.target == 'android' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK and NDK
+        if: ${{ matrix.target == 'android' }}
+        run: |
+          # The latest NDK is not compatible with Lime, so pin the version from docs/COMPILING_MOBILE.md.
+          sdkmanager --install "build-tools;35.0.0" "ndk;29.0.13113456" "platforms;android-29" "platforms;android-35"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/29.0.13113456" >> "$GITHUB_ENV"
+
+      - name: Install patched haxelib and hmm
+        run: |
+          haxelib --global git haxelib https://github.com/FunkinCrew/haxelib.git
+          haxelib --global git hmm https://github.com/FunkinCrew/hmm.git
+          haxelib --never newrepo
+          echo "HAXEPATH=$(haxelib config)" >> "$GITHUB_ENV"
+
+      - name: Restore cached dependencies
+        id: cache-hmm
+        uses: actions/cache@v4
+        with:
+          path: .haxelib
+          key: haxe-hmm-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ hashFiles('hmm.json') }}
+
+      - name: Install dependencies
+        if: ${{ steps.cache-hmm.outputs.cache-hit != 'true' }}
+        run: |
+          git config --global advice.detachedHead false
+          haxelib --global run hmm install -q
+          haxelib --global fixrepo
+
+      - name: Build hxcpp command line tool
+        if: ${{ matrix.target != 'html5' }}
+        run: |
+          cd .haxelib/hxcpp/git/tools/hxcpp
+          haxe compile.hxml
+
+      - name: Setup Lime
+        run: |
+          haxelib --always run lime setup
+
+      - name: Restore lime natives cache
+        if: ${{ matrix.target != 'html5' && matrix.target != 'android' }}
+        id: cache-lime
+        uses: actions/cache@v4
+        with:
+          path: .haxelib/lime/git/ndll
+          key: haxe-lime-ndll-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('hmm.json') }}
+
+      - name: Rebuild Lime natives
+        if: ${{ matrix.target != 'html5' && steps.cache-lime.outputs.cache-hit != 'true' }}
+        run: |
+          # Lime's submodules (dr_libs, openal, ...) are often missing after a hmm install.
+          git -C .haxelib/lime/git submodule update --init --recursive
+          haxelib run lime rebuild tools
+          case "${{ matrix.target }}" in
+            windows) haxelib run lime rebuild windows ;;
+            linux)   haxelib run lime rebuild linux -64 ;;
+            mac)     haxelib run lime rebuild mac -64 ;;
+            android) haxelib run lime rebuild android ;;
+            ios)     haxelib run lime rebuild ios ;;
+          esac
+
+      - name: Create empty .env
+        run: touch .env
+
+      - name: Build game
+        run: |
+          haxelib run lime build ${{ matrix.target }} -v ${{ matrix.flags }} $BUILD_DEFINES
+        timeout-minutes: 150
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: funkin-${{ matrix.target }}
+          path: export/*/${{ matrix.target }}/bin/
+          if-no-files-found: warn
+          retention-days: 7
