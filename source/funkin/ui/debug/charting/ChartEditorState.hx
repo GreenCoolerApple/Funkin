@@ -7559,12 +7559,12 @@ class ChartEditorState extends UIState // UIState derives from MusicBeatState
     {
       inner += '*';
     }
-    WindowUtil.setWindowTitle('Friday Night Funkin\' Chart Editor - ${inner}');
+    WindowUtil.setWindowTitle('Funkin\' Revival Chart Editor - ${inner}');
   }
 
   function resetWindowTitle():Void
   {
-    WindowUtil.setWindowTitle('Friday Night Funkin\'');
+    WindowUtil.setWindowTitle('Funkin\' Revival');
   }
 
   /**

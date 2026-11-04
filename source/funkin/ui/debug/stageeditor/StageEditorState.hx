@@ -297,7 +297,7 @@ class StageEditorState extends UIState
   {
     WindowManager.instance.reset();
     FlxG.sound.music?.stop();
-    WindowUtil.setWindowTitle("Friday Night Funkin\' Stage Editor");
+    WindowUtil.setWindowTitle("Funkin\' Revival Stage Editor");
 
     camGame = new FunkinCamera();
     camHUD = new FlxCamera();
@@ -1011,7 +1011,7 @@ class StageEditorState extends UIState
 
   public function updateWindowTitle()
   {
-    var defaultTitle = "Friday Night Funkin\' Stage Editor";
+    var defaultTitle = "Funkin\' Revival Stage Editor";
 
     if (currentFile == '') defaultTitle += ' - New File'
     else
@@ -1024,7 +1024,7 @@ class StageEditorState extends UIState
 
   function resetWindowTitle():Void
   {
-    WindowUtil.setWindowTitle('Friday Night Funkin\'');
+    WindowUtil.setWindowTitle('Funkin\' Revival');
   }
 
   function updateBGColors():Void

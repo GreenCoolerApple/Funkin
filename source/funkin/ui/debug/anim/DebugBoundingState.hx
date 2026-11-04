@@ -74,7 +74,7 @@ class DebugBoundingState extends FlxState
     });
     FlxG.sound.music.fadeIn(10, 0, 1);
 
-    WindowUtil.setWindowTitle("Friday Night Funkin\' Animation Editor");
+    WindowUtil.setWindowTitle("Funkin\' Revival Animation Editor");
 
     hudCam = new FlxCamera();
     hudCam.bgColor.alpha = 0;
@@ -342,7 +342,7 @@ class DebugBoundingState extends FlxState
 
   function resetWindowTitle():Void
   {
-    WindowUtil.setWindowTitle('Friday Night Funkin\'');
+    WindowUtil.setWindowTitle('Funkin\' Revival');
   }
 
   override function destroy()

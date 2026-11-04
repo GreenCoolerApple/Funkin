@@ -163,7 +163,7 @@ class MusicBeatState extends FlxTransitionableState implements IEventHandler
     if (FlxG.keys.justPressed.F4)
     {
       FlxG.switchState(() -> new MainMenuState());
-      WindowUtil.setWindowTitle('Friday Night Funkin\'');
+      WindowUtil.setWindowTitle('Funkin\' Revival');
     }
   }
 
