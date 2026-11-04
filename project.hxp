@@ -53,13 +53,13 @@ class Project extends HXProject
   /**
    * A package name used for identifying the app on various app stores.
    */
-  static final PACKAGE_NAME:String = "me.funkin.fnf";
+  static final PACKAGE_NAME:String = "me.funkin.revival";
 
   /**
    * The name of the generated executable file.
    * For example, `"Funkin"` will create a file called `Funkin.exe`.
    */
-  static final EXECUTABLE_NAME:String = "Funkin";
+  static final EXECUTABLE_NAME:String = "FunkinRevival";
 
   /**
    * The relative location of the source code.
