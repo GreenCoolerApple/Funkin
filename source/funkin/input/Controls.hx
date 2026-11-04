@@ -33,6 +33,9 @@ class Controls extends FlxActionSet
   #if FEATURE_SCREENSHOTS
   var _window_screenshot:FunkinAction = new FunkinAction(Action.WINDOW_SCREENSHOT);
   #end
+  #if FEATURE_VIDEO_RECORDING
+  var _window_record:FunkinAction = new FunkinAction(Action.WINDOW_RECORD);
+  #end
   var _window_fullscreen:FunkinAction = new FunkinAction(Action.WINDOW_FULLSCREEN);
   var _freeplay_favorite:FunkinAction = new FunkinAction(Action.FREEPLAY_FAVORITE);
   var _freeplay_left:FunkinAction = new FunkinAction(Action.FREEPLAY_LEFT);
@@ -326,6 +329,15 @@ class Controls extends FlxActionSet
   }
   #end
 
+  #if FEATURE_VIDEO_RECORDING
+  public var WINDOW_RECORD(get, never):Bool;
+
+  inline function get_WINDOW_RECORD():Bool
+  {
+    return _window_record.check();
+  }
+  #end
+
   public var FREEPLAY_FAVORITE(get, never):Bool;
 
   inline function get_FREEPLAY_FAVORITE():Bool
@@ -447,6 +459,7 @@ class Controls extends FlxActionSet
     add(_pause);
     add(_reset);
     #if FEATURE_SCREENSHOTS add(_window_screenshot); #end
+    #if FEATURE_VIDEO_RECORDING add(_window_record); #end
     add(_window_fullscreen);
     add(_freeplay_favorite);
     add(_freeplay_left);
@@ -604,6 +617,10 @@ class Controls extends FlxActionSet
       case WINDOW_SCREENSHOT:
         _window_screenshot;
       #end
+      #if FEATURE_VIDEO_RECORDING
+      case WINDOW_RECORD:
+        _window_record;
+      #end
       case WINDOW_FULLSCREEN:
         _window_fullscreen;
       case FREEPLAY_FAVORITE:
@@ -703,6 +720,10 @@ class Controls extends FlxActionSet
       #if FEATURE_SCREENSHOTS
       case WINDOW_SCREENSHOT:
         func(_window_screenshot, JUST_PRESSED);
+      #end
+      #if FEATURE_VIDEO_RECORDING
+      case WINDOW_RECORD:
+        func(_window_record, JUST_PRESSED);
       #end
       case WINDOW_FULLSCREEN:
         func(_window_fullscreen, JUST_PRESSED);
@@ -939,6 +960,9 @@ class Controls extends FlxActionSet
     #if FEATURE_SCREENSHOTS
     bindKeys(Control.WINDOW_SCREENSHOT, getDefaultKeybinds(scheme, Control.WINDOW_SCREENSHOT));
     #end
+    #if FEATURE_VIDEO_RECORDING
+    bindKeys(Control.WINDOW_RECORD, getDefaultKeybinds(scheme, Control.WINDOW_RECORD));
+    #end
     bindKeys(Control.WINDOW_FULLSCREEN, getDefaultKeybinds(scheme, Control.WINDOW_FULLSCREEN));
     bindKeys(Control.FREEPLAY_FAVORITE, getDefaultKeybinds(scheme, Control.FREEPLAY_FAVORITE));
     bindKeys(Control.FREEPLAY_LEFT, getDefaultKeybinds(scheme, Control.FREEPLAY_LEFT));
@@ -998,6 +1022,10 @@ class Controls extends FlxActionSet
           #if FEATURE_SCREENSHOTS
           case Control.WINDOW_SCREENSHOT:
             return [F3];
+          #end
+          #if FEATURE_VIDEO_RECORDING
+          case Control.WINDOW_RECORD:
+            return [F7];
           #end
           case Control.FREEPLAY_FAVORITE:
             return [F]; // Favorite a song on the menu
@@ -1065,6 +1093,10 @@ class Controls extends FlxActionSet
           case Control.WINDOW_SCREENSHOT:
             return [F3];
           #end
+          #if FEATURE_VIDEO_RECORDING
+          case Control.WINDOW_RECORD:
+            return [F7];
+          #end
           case Control.WINDOW_FULLSCREEN:
             return [F11];
           case Control.FREEPLAY_FAVORITE:
@@ -1131,6 +1163,10 @@ class Controls extends FlxActionSet
             return [R];
           #if FEATURE_SCREENSHOTS
           case Control.WINDOW_SCREENSHOT:
+            return [];
+          #end
+          #if FEATURE_VIDEO_RECORDING
+          case Control.WINDOW_RECORD:
             return [];
           #end
           case Control.WINDOW_FULLSCREEN:
@@ -1236,6 +1272,7 @@ class Controls extends FlxActionSet
       Control.RESET => getDefaultGamepadBinds(Control.RESET),
       Control.WINDOW_FULLSCREEN => getDefaultGamepadBinds(Control.WINDOW_FULLSCREEN),
       #if FEATURE_SCREENSHOTS Control.WINDOW_SCREENSHOT => getDefaultGamepadBinds(Control.WINDOW_SCREENSHOT), #end
+      #if FEATURE_VIDEO_RECORDING Control.WINDOW_RECORD => getDefaultGamepadBinds(Control.WINDOW_RECORD), #end
       Control.CUTSCENE_ADVANCE => getDefaultGamepadBinds(Control.CUTSCENE_ADVANCE),
       Control.FREEPLAY_FAVORITE => getDefaultGamepadBinds(Control.FREEPLAY_FAVORITE),
       Control.FREEPLAY_LEFT => getDefaultGamepadBinds(Control.FREEPLAY_LEFT),
@@ -1285,6 +1322,10 @@ class Controls extends FlxActionSet
         [];
       #if FEATURE_SCREENSHOTS
       case Control.WINDOW_SCREENSHOT:
+        [];
+      #end
+      #if FEATURE_VIDEO_RECORDING
+      case Control.WINDOW_RECORD:
         [];
       #end
       case Control.CUTSCENE_ADVANCE:
@@ -1742,6 +1783,7 @@ enum Control
   FREEPLAY_JUMP_TO_BOTTOM;
   // WINDOW
   #if FEATURE_SCREENSHOTS WINDOW_SCREENSHOT; #end
+  #if FEATURE_VIDEO_RECORDING WINDOW_RECORD; #end
   WINDOW_FULLSCREEN;
   // VOLUME
   VOLUME_UP;
@@ -1774,6 +1816,9 @@ enum abstract Action(String) to String from String
   public var WINDOW_FULLSCREEN = 'window_fullscreen';
   #if FEATURE_SCREENSHOTS
   var WINDOW_SCREENSHOT = 'window_screenshot';
+  #end
+  #if FEATURE_VIDEO_RECORDING
+  var WINDOW_RECORD = 'window_record';
   #end
   // CUTSCENE
   public var CUTSCENE_ADVANCE = 'cutscene_advance';

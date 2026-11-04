@@ -161,6 +161,11 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     {
       Preferences.zoomCamera = value;
     }, Preferences.zoomCamera);
+    createPrefItemCheckbox('Camera Movement', 'When enabled, the camera moves a little in the direction the focused character is singing.',
+      function(value:Bool):Void
+      {
+        Preferences.cameraMovement = value;
+      }, Preferences.cameraMovement);
     createPrefItemCheckbox('Subtitles', 'When enabled, subtitles appear during some songs and cutscenes.', function(value:Bool):Void
     {
       Preferences.subtitles = value;
@@ -221,6 +226,11 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
         Preferences.framerate = Std.int(value);
       }, null, Preferences.framerate, 30, 500, 5, 0);
     #end
+    createPrefItemCheckbox('High Quality Graphics', 'When enabled, textures are smoothed.\nWhen disabled, the game looks pixelated, but runs faster on weak devices.',
+      function(value:Bool):Void
+      {
+        Preferences.highQualityGraphics = value;
+      }, Preferences.highQualityGraphics);
     createPrefItemCheckbox('Asset Caching',
       'When enabled, textures and sounds stay cached when changing screens.\nLoads faster and stutters less, but uses more memory.',
       function(value:Bool):Void

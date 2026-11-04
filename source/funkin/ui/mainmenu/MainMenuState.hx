@@ -138,10 +138,11 @@ class MainMenuState extends MusicBeatState
     add(menuItems);
 
     menuItems.onChange.add(onMenuItemChange);
-    menuItems.onAcceptPress.add(_ ->
+    menuItems.onAcceptPress.add(item ->
     {
       FlxFlicker.flicker(magenta, 1.1, 0.15, false, true);
       uiStateMachine.transition(Interacting);
+      playConfirmAnimation(item);
     });
 
     menuItems.enabled = true;
@@ -370,6 +371,65 @@ class MainMenuState extends MusicBeatState
     buttonGrp.push(item);
   }
 
+  /**
+   * The camera zoom before the confirm animation started, so it can be restored.
+   */
+  var confirmBaseZoom:Float = 1.0;
+
+  /**
+   * Plays the animation of choosing a menu item: the item pulses, the other items fade out,
+   * the screen flashes and the camera zooms in a little.
+   */
+  function playConfirmAnimation(selected:AtlasMenuItem):Void
+  {
+    confirmBaseZoom = FlxG.camera.zoom;
+
+    // The chosen item grows quickly, then settles back.
+    final baseScaleX:Float = selected.scale.x;
+    final baseScaleY:Float = selected.scale.y;
+    FlxTween.tween(selected.scale, {x: baseScaleX * 1.12, y: baseScaleY * 1.12}, 0.1, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> FlxTween.tween(selected.scale, {x: baseScaleX, y: baseScaleY}, 0.3, {ease: FlxEase.backOut})
+    });
+
+    // Everything else fades out.
+    final items:Null<MenuTypedList<AtlasMenuItem>> = menuItems;
+    if (items != null)
+    {
+      for (item in items.members)
+      {
+        if (item != selected) FlxTween.tween(item, {alpha: 0.0}, 0.3, {ease: FlxEase.quadOut});
+      }
+    }
+
+    // A quick flash, if flashing lights are allowed, and a camera bump.
+    if (Preferences.flashingLights) FlxG.camera.flash(FlxColor.WHITE, 0.3);
+    FlxTween.tween(FlxG.camera, {zoom: confirmBaseZoom * 1.06}, 0.12, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> FlxTween.tween(FlxG.camera, {zoom: confirmBaseZoom * 1.03}, 0.5, {ease: FlxEase.sineOut})
+    });
+  }
+
+  /**
+   * Undoes the confirm animation, for when the menu is shown again after choosing an item that opens a substate.
+   */
+  function resetConfirmAnimation():Void
+  {
+    FlxTween.cancelTweensOf(FlxG.camera, ['zoom']);
+    FlxG.camera.zoom = confirmBaseZoom;
+
+    final items:Null<MenuTypedList<AtlasMenuItem>> = menuItems;
+    if (items == null) return;
+
+    for (i in 0...items.members.length)
+    {
+      final item:AtlasMenuItem = items.members[i];
+      FlxTween.cancelTweensOf(item, ['alpha']);
+      // The selected item is fully visible and the others are dimmed, same as in `MenuListItem`.
+      item.alpha = (i == items.selectedIndex) ? 1.0 : 0.6;
+    }
+  }
+
   override function closeSubState():Void
   {
     magenta.visible = false;
@@ -379,6 +439,7 @@ class MainMenuState extends MusicBeatState
     if (!(subState is flixel.addons.transition.Transition))
     {
       uiStateMachine.transition(Idle);
+      resetConfirmAnimation();
 
       #if FEATURE_TOUCH_CONTROLS
       // we want to reset our backButton + optionsButton if we are returning to the main menu from a substate like freeplay

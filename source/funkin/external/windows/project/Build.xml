@@ -14,6 +14,7 @@
     <compilerflag value="-I${this_dir}/include" />
 
     <file name="${this_dir}/src/winapi.cpp" />
+    <file name="${this_dir}/src/videorecorder.cpp" />
   </files>
 
   <target id="haxe">
@@ -22,6 +23,13 @@
         <lib name="-lkernel32" />
         <lib name="-ldwmapi" />
         <lib name="-ladvapi32" />
+        <!-- Video recording (Media Foundation and OpenGL). -->
+        <lib name="-lmfplat" />
+        <lib name="-lmfreadwrite" />
+        <lib name="-lmfuuid" />
+        <lib name="-lole32" />
+        <lib name="-lopengl32" />
+        <lib name="-lmmdevapi" />
     </section>
 
     <section unless="mingw">
@@ -29,6 +37,13 @@
         <lib name="kernel32.lib" />
         <lib name="dwmapi.lib" />
         <lib name="advapi32.lib" />
+        <!-- Video recording (Media Foundation and OpenGL). -->
+        <lib name="mfplat.lib" />
+        <lib name="mfreadwrite.lib" />
+        <lib name="mfuuid.lib" />
+        <lib name="ole32.lib" />
+        <lib name="opengl32.lib" />
+        <lib name="mmdevapi.lib" />
     </section>
 
     <files id="external-windows" />

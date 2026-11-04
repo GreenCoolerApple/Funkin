@@ -866,6 +866,30 @@ typedef HealthIconData =
    * @default [0, 25]
    */
   var offsets:Null<Array<Float>>;
+
+  /**
+   * The color of this character's side of the health bar, as a string such as `"#31B0D1"`.
+   * @default The most prominent color found in the health icon's image.
+   */
+  var ?color:String;
+
+  /**
+   * The health, as a fraction of the maximum health, above which the icon shows its winning state.
+   * @default 0.8
+   */
+  var ?winningThreshold:Float;
+
+  /**
+   * The health, as a fraction of the maximum health, below which the icon shows its losing state.
+   * @default 0.2
+   */
+  var ?losingThreshold:Float;
+
+  /**
+   * How much the icon grows when it bops on the beat, as a fraction of its size.
+   * @default 0.2
+   */
+  var ?bopScale:Float;
 }
 
 typedef DeathData =

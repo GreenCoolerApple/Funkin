@@ -43,6 +43,7 @@ class ControlsMenu extends Page<OptionsState.OptionsMenuPageName>
     [
       WINDOW_FULLSCREEN,
       #if FEATURE_SCREENSHOTS WINDOW_SCREENSHOT, #end
+      #if FEATURE_VIDEO_RECORDING WINDOW_RECORD, #end
     ],
     [VOLUME_UP, VOLUME_DOWN, VOLUME_MUTE],
     [

@@ -1,5 +1,6 @@
 package funkin;
 
+import flixel.FlxSprite;
 #if mobile
 import funkin.mobile.input.ControlsHandler;
 import funkin.mobile.ui.FunkinHitbox;
@@ -153,6 +154,57 @@ class Preferences
     save.options.cacheAssets = value;
     Save.system.flush();
     return value;
+  }
+
+  /**
+   * If enabled, the camera moves a little in the direction the focused character is singing.
+   * @default `false`
+   */
+  public static var cameraMovement(get, set):Bool;
+
+  static function get_cameraMovement():Bool
+  {
+    return Save?.instance?.options?.cameraMovement ?? false;
+  }
+
+  static function set_cameraMovement(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.cameraMovement = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If disabled, textures are not smoothed. This is faster, but looks pixelated.
+   * @default `true`
+   */
+  public static var highQualityGraphics(get, set):Bool;
+
+  static function get_highQualityGraphics():Bool
+  {
+    return Save?.instance?.options?.highQualityGraphics ?? true;
+  }
+
+  static function set_highQualityGraphics(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.highQualityGraphics = value;
+    Save.system.flush();
+    applyGraphicsQuality();
+    return value;
+  }
+
+  /**
+   * Applies the graphics quality setting. Smoothing is turned off in the renderer when it is disabled,
+   * so this takes effect immediately, without having to restart.
+   */
+  public static function applyGraphicsQuality():Void
+  {
+    final high:Bool = highQualityGraphics;
+
+    FlxSprite.defaultAntialiasing = high;
+    if (FlxG.stage != null) FlxG.stage.quality = high ? openfl.display.StageQuality.BEST : openfl.display.StageQuality.LOW;
   }
 
   /**
@@ -586,6 +638,8 @@ class Preferences
     setDebugDisplayBGOpacity(Preferences.debugDisplayBGOpacity / 100);
 
     toggleFramerateCap(Preferences.unlockedFramerate);
+
+    applyGraphicsQuality();
 
     #if mobile
     // Apply the allowScreenTimeout setting.

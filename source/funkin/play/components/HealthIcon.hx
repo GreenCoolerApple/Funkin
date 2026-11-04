@@ -6,7 +6,9 @@ import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
 import flixel.tweens.FlxTween;
 import flixel.tweens.FlxEase;
+import flixel.util.FlxColor;
 import funkin.data.character.CharacterData.CharacterDataParser;
+import funkin.util.ColorUtil;
 import funkin.graphics.FunkinSprite;
 import funkin.util.MathUtil;
 
@@ -87,13 +89,21 @@ class HealthIcon extends FunkinSprite
 
   /**
    * At this amount of health, play the Winning animation instead of the idle.
+   * Can be set per character with `healthIcon.winningThreshold` (a fraction of the maximum health) in the character JSON.
    */
-  static final WINNING_THRESHOLD:Float = 0.8 * 2;
+  public var winningThreshold:Float = 0.8 * Constants.HEALTH_MAX;
 
   /**
    * At this amount of health, play the Losing animation instead of the idle.
+   * Can be set per character with `healthIcon.losingThreshold` (a fraction of the maximum health) in the character JSON.
    */
-  static final LOSING_THRESHOLD:Float = 0.2 * 2;
+  public var losingThreshold:Float = 0.2 * Constants.HEALTH_MAX;
+
+  /**
+   * The color this icon's side of the health bar uses.
+   * Set from `healthIcon.color` in the character JSON. If `null`, the color is picked from the icon's image.
+   */
+  public var barColorOverride:Null<FlxColor> = null;
 
   /**
    * The maximum health of the player.
@@ -114,8 +124,14 @@ class HealthIcon extends FunkinSprite
 
   /**
    * The amount, in percent, to scale the icon by when bopping.
+   * Can be set per character with `healthIcon.bopScale` in the character JSON.
    */
-  static final BOP_SCALE:Float = 0.2;
+  public var bopScale:Float = 0.2;
+
+  /**
+   * The health bar color found in each icon's image, so every character is only analyzed once.
+   */
+  static final BAR_COLOR_CACHE:Map<String, FlxColor> = [];
 
   /**
    * shitty hardcoded value for a specific positioning!!!
@@ -198,6 +214,10 @@ class HealthIcon extends FunkinSprite
       this.size.set(1.0, 1.0);
       this.iconOffset.set();
       this.flipX = false;
+      this.barColorOverride = null;
+      this.winningThreshold = 0.8 * MAXIMUM_HEALTH;
+      this.losingThreshold = 0.2 * MAXIMUM_HEALTH;
+      this.bopScale = 0.2;
       this.updatePosition();
     }
     else
@@ -205,6 +225,10 @@ class HealthIcon extends FunkinSprite
       this.characterId = data.id;
       this.isPixel = data.isPixel ?? false;
       this.shouldBop = data.shouldBop ?? true;
+      this.barColorOverride = (data.color != null) ? ColorUtil.parse(data.color) : null;
+      this.winningThreshold = (data.winningThreshold ?? 0.8) * MAXIMUM_HEALTH;
+      this.losingThreshold = (data.losingThreshold ?? 0.2) * MAXIMUM_HEALTH;
+      this.bopScale = data.bopScale ?? 0.2;
 
       loadCharacter(characterId);
 
@@ -221,6 +245,28 @@ class HealthIcon extends FunkinSprite
       this.flipX = data.flipX ?? false; // Face the OTHER way by default, since that is more common.
       this.updatePosition();
     }
+  }
+
+  /**
+   * Gets the color this icon's side of the health bar should use.
+   * This is `healthIcon.color` from the character JSON if it is set,
+   * otherwise the most prominent color found in the icon's image.
+   */
+  public function getBarColor():FlxColor
+  {
+    if (barColorOverride != null) return barColorOverride;
+
+    final fallback:FlxColor = (playerId == 0) ? Constants.COLOR_HEALTH_BAR_GREEN : Constants.COLOR_HEALTH_BAR_RED;
+
+    final cached:Null<FlxColor> = BAR_COLOR_CACHE.get(characterId);
+    if (cached != null) return cached;
+
+    // Without a frame there is nothing to look at, so don't cache the fallback.
+    if (this.frame == null) return fallback;
+
+    final color:FlxColor = ColorUtil.getDominantColor(this.updateFramePixels(), fallback);
+    BAR_COLOR_CACHE.set(characterId, color);
+    return color;
   }
 
   /**
@@ -302,8 +348,8 @@ class HealthIcon extends FunkinSprite
     if (bopEvery != 0 && curStep % bopEvery == 0 && shouldBop)
     {
       bopTween?.cancel();
-      setGraphicSize(Std.int(this.width + (HEALTH_ICON_SIZE * this.size.x * BOP_SCALE)), 0);
-      bopTween = FlxTween.num(this.width + (HEALTH_ICON_SIZE * this.size.x * BOP_SCALE), HEALTH_ICON_SIZE * this.size.x,
+      setGraphicSize(Std.int(this.width + (HEALTH_ICON_SIZE * this.size.x * bopScale)), 0);
+      bopTween = FlxTween.num(this.width + (HEALTH_ICON_SIZE * this.size.x * bopScale), HEALTH_ICON_SIZE * this.size.x,
         Math.min(Conductor.instance.stepLengthMs * 0.002, .175), {
           onComplete: _ -> bopTween = null
         }, value ->
@@ -331,11 +377,11 @@ class HealthIcon extends FunkinSprite
     switch (getCurrentAnimation())
     {
       case Idle:
-        if (health < LOSING_THRESHOLD)
+        if (health < losingThreshold)
         {
           playAnimation(ToLosing, Losing);
         }
-        else if (health > WINNING_THRESHOLD)
+        else if (health > winningThreshold)
         {
           playAnimation(ToWinning, Winning);
         }
@@ -344,7 +390,7 @@ class HealthIcon extends FunkinSprite
           playAnimation(Idle);
         }
       case Winning:
-        if (health < WINNING_THRESHOLD)
+        if (health < winningThreshold)
         {
           playAnimation(FromWinning, Idle);
         }
@@ -353,7 +399,7 @@ class HealthIcon extends FunkinSprite
           playAnimation(Winning, Idle);
         }
       case Losing:
-        if (health > LOSING_THRESHOLD) playAnimation(FromLosing, Idle);
+        if (health > losingThreshold) playAnimation(FromLosing, Idle);
         else
         {
           playAnimation(Losing, Idle);

@@ -36,7 +36,20 @@ using flixel.util.FlxSpriteUtil;
 
 class DebugBoundingState extends FlxState
 {
+  /**
+   * Colors of the editor, shared with the side panel in `revival-editor-panel.xml`.
+   */
+  static final COLOR_GRID_A:FlxColor = 0xFF2B3036;
+  static final COLOR_GRID_B:FlxColor = 0xFF262B30;
+  static final COLOR_CARD:FlxColor = 0xE614171A;
+  static final COLOR_CARD_BORDER:FlxColor = 0xFF2E3338;
+  static final COLOR_TEXT:FlxColor = 0xFFE6EAEE;
+  static final COLOR_ACCENT:FlxColor = 0xFF5CC8FF;
+
   var bg:FlxBackdrop;
+  var headerCard:FlxSprite;
+  var headerText:FlxText;
+  var offsetCard:FlxSprite;
   var txtGrp:FlxTypedGroup<FlxText>;
   var hudCam:FlxCamera;
   var curView:ANIMDEBUGVIEW = SPRITESHEET;
@@ -47,6 +60,7 @@ class DebugBoundingState extends FlxState
   var txtOffsetShit:FlxText;
   var offsetEditorDialog:CollapsibleDialog;
   var offsetAnimationDropdown:DropDown;
+  var offsetAnimationLabel:Null<haxe.ui.core.Component>;
   var haxeUIFocused(get, default):Bool = false;
   var currentAnimationName(get, never):String;
 
@@ -79,13 +93,16 @@ class DebugBoundingState extends FlxState
     hudCam = new FlxCamera();
     hudCam.bgColor.alpha = 0;
 
-    bg = new FlxBackdrop(FlxGridOverlay.createGrid(10, 10, FlxG.width, FlxG.height, true, 0xffe7e6e6, 0xffd9d5d5));
+    bg = new FlxBackdrop(FlxGridOverlay.createGrid(10, 10, FlxG.width, FlxG.height, true, COLOR_GRID_A, COLOR_GRID_B));
     add(bg);
 
     // we are setting this as the default draw camera only temporarily, to trick haxeui
     FlxG.cameras.add(hudCam);
 
-    var str = Paths.xml('ui/animation-editor/offset-editor-view');
+    // Use the modern panel, and fall back to the original one when it is not in the build
+    // (for example when the assets folder is redirected on debug builds).
+    var str = Paths.xml('ui/animation-editor/revival-editor-panel');
+    if (!funkin.Assets.exists(str)) str = Paths.xml('ui/animation-editor/offset-editor-view');
     offsetEditorDialog = cast RuntimeComponentBuilder.fromAsset(str);
 
     // offsetEditorDialog.findComponent("btnViewSpriteSheet").onClick = _ -> curView = SPRITESHEET;
@@ -96,6 +113,8 @@ class DebugBoundingState extends FlxState
     };
 
     offsetAnimationDropdown = offsetEditorDialog.findComponent("animationDropdown", DropDown);
+    // Only the modern panel has this label, so it can be `null`.
+    offsetAnimationLabel = offsetEditorDialog.findComponent("animationLabel");
 
     offsetEditorDialog.cameras = [hudCam];
     offsetEditorDialog.closable = false;
@@ -103,9 +122,9 @@ class DebugBoundingState extends FlxState
     add(offsetEditorDialog);
     offsetEditorDialog.showDialog(false);
 
-    // Anchor to the left side by default
+    // Anchor to the left side by default, below the debug display (FPS counter) in the top left corner.
     offsetEditorDialog.x = 16;
-    offsetEditorDialog.y = 16;
+    offsetEditorDialog.y = 96;
 
     // sets the default camera back to FlxG.camera, since we set it to hudCamera for haxeui stuf
     FlxG.cameras.setDefaultDrawTarget(FlxG.camera, true);
@@ -113,10 +132,63 @@ class DebugBoundingState extends FlxState
 
     initSpritesheetView();
     initOffsetView();
+    initHeader();
 
     Cursor.show();
 
     super.create();
+  }
+
+  /**
+   * Creates the title bar at the top of the screen.
+   */
+  function initHeader():Void
+  {
+    headerCard = new FlxSprite();
+    headerCard.scrollFactor.set();
+    headerCard.cameras = [hudCam];
+    add(headerCard);
+
+    headerText = new FlxText(0, 22, 0, "", 18);
+    headerText.setFormat(Paths.font("vcr.ttf"), 18, COLOR_ACCENT, CENTER);
+    headerText.scrollFactor.set();
+    headerText.cameras = [hudCam];
+    add(headerText);
+  }
+
+  /**
+   * Redraws the rounded card behind a text, when the text changes size, and keeps it in place.
+   */
+  function fitCard(card:FlxSprite, text:FlxText, paddingX:Int = 14, paddingY:Int = 8):Void
+  {
+    var cardWidth:Int = Std.int(text.width) + (paddingX * 2);
+    var cardHeight:Int = Std.int(text.height) + (paddingY * 2);
+
+    if (Std.int(card.width) != cardWidth || Std.int(card.height) != cardHeight)
+    {
+      card.makeGraphic(cardWidth, cardHeight, FlxColor.TRANSPARENT, true);
+      card.drawRoundRect(0, 0, cardWidth, cardHeight, 16, 16, COLOR_CARD, {color: COLOR_CARD_BORDER, thickness: 1});
+    }
+
+    card.setPosition(text.x - paddingX, text.y - paddingY);
+  }
+
+  /**
+   * Updates the title bar and the cards behind the HUD texts.
+   */
+  function updateHud():Void
+  {
+    var label:String = 'ANIMATION EDITOR   /   ' + (curView == SPRITESHEET ? 'SPRITESHEET' : 'ANIMATIONS');
+    if (curView == ANIMATIONS && swagChar != null) label += '   /   ${swagChar.characterId}   /   $currentAnimationName';
+
+    if (headerText.text != label)
+    {
+      headerText.text = label;
+      headerText.screenCenter(X);
+    }
+    fitCard(headerCard, headerText);
+
+    if (curView == ANIMATIONS) fitCard(offsetCard, txtOffsetShit);
   }
 
   var bf:FlxSprite;
@@ -199,8 +271,13 @@ class DebugBoundingState extends FlxState
     offsetView = new FlxGroup();
     add(offsetView);
 
-    txtOffsetShit = new FlxText(20, 20, 0, "", 20);
-    txtOffsetShit.setFormat(Paths.font("vcr.ttf"), 26, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    offsetCard = new FlxSprite();
+    offsetCard.scrollFactor.set();
+    offsetCard.cameras = [hudCam];
+    offsetView.add(offsetCard);
+
+    txtOffsetShit = new FlxText(34, 20, 0, "", 20);
+    txtOffsetShit.setFormat(Paths.font("vcr.ttf"), 22, COLOR_TEXT, LEFT);
     txtOffsetShit.cameras = [hudCam];
     txtOffsetShit.y = FlxG.height - 20 - txtOffsetShit.height;
     offsetView.add(txtOffsetShit);
@@ -264,7 +341,7 @@ class DebugBoundingState extends FlxState
   function addInfo(str:String, value:Dynamic)
   {
     var swagText:FlxText = new FlxText(10, FlxG.height - 32);
-    swagText.setFormat(Paths.font("vcr.ttf"), 26, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    swagText.setFormat(Paths.font("vcr.ttf"), 22, COLOR_TEXT, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
     swagText.scrollFactor.set();
 
     for (text in txtGrp.members)
@@ -309,11 +386,13 @@ class DebugBoundingState extends FlxState
         offsetView.visible = false;
         offsetView.active = false;
         offsetAnimationDropdown.hide();
+        offsetAnimationLabel?.hide();
       case ANIMATIONS:
         spriteSheetView.visible = false;
         offsetView.visible = true;
         offsetView.active = true;
         offsetAnimationDropdown.show();
+        offsetAnimationLabel?.show();
         offsetControls();
         mouseOffsetMovement();
     }
@@ -336,6 +415,8 @@ class DebugBoundingState extends FlxState
     // bg.scale.y = FlxG.camera.zoom;
 
     bg.setGraphicSize(Std.int(bg.width / FlxG.camera.zoom));
+
+    updateHud();
 
     super.update(elapsed);
   }

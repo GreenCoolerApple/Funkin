@@ -147,7 +147,8 @@ class InitState extends FlxState
       SongEventHelper.generateEaseGraphsBitmaps();
 
       // This ain't a pixel art game! (most of the time)
-      FlxSprite.defaultAntialiasing = true;
+      // Smoothing is on unless the player turned off high quality graphics.
+      Preferences.applyGraphicsQuality();
 
       // Disable default keybinds for volume (we manually control volume in MusicBeatState with custom binds)
       FlxG.sound.volumeUpKeys = [];
@@ -260,6 +261,9 @@ class InitState extends FlxState
       #end
       #if FEATURE_SCREENSHOTS
       funkin.util.plugins.ScreenshotPlugin.initialize();
+      #end
+      #if FEATURE_VIDEO_RECORDING
+      funkin.util.plugins.VideoRecorderPlugin.initialize();
       #end
       #if FEATURE_NEWGROUNDS
       funkin.util.plugins.NewgroundsMedalPlugin.initialize();

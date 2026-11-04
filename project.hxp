@@ -460,6 +460,13 @@ class Project extends HXProject
   static final FEATURE_SCREENSHOTS:FeatureFlag = "FEATURE_SCREENSHOTS";
 
   /**
+   * `-DFEATURE_VIDEO_RECORDING`
+   * If this flag is enabled, the game will support recording videos of the game window.
+   * Only available on Windows, since it uses Windows Media Foundation.
+   */
+  static final FEATURE_VIDEO_RECORDING:FeatureFlag = "FEATURE_VIDEO_RECORDING";
+
+  /**
    * `-DFEATURE_HAXEUI`
    * If this flag is enabled, the game will enable the HaxeUI interface layer.
    * This can be used to provide menus, dialogs, and other UI components via HaxeUI.
@@ -671,6 +678,8 @@ class Project extends HXProject
       this.window.fullscreen = false;
       this.window.resizable = true;
       this.window.vsync = false;
+      // 4x multisampling, for smoother edges on rotated and scaled sprites.
+      this.window.antialiasing = 4;
     }
 
     if (isMobile())
@@ -900,6 +909,9 @@ class Project extends HXProject
     // Mobile has its own screenshot methods.
     // Web has it disabled due to performance cost of `preserveDrawingBuffer`.
     FEATURE_SCREENSHOTS.apply(this, isDesktop());
+
+    // Should be true only on Windows, since the recorder uses Windows Media Foundation.
+    FEATURE_VIDEO_RECORDING.apply(this, isWindows() && FEATURE_SCREENSHOTS.isEnabled(this));
 
     // Should be true except on mobile builds.
     FEATURE_FILE_DROP.apply(this, !isMobile());
@@ -1412,7 +1424,14 @@ class Project extends HXProject
       addAsset("assets/exclude/data/credits.json", "assets/data/credits.json", "default", shouldEmbed);
     }
 
-    if (!FEATURE_ANIMATION_EDITOR.isEnabled(this)) removeAssetPath('assets/preload/data/ui/animation-editor', "default");
+    // Funkin' Revival's own assets. They live outside of the `assets` submodule so they can be versioned in this repository.
+    addAssetPath("assets-revival/preload", "assets", "default", ["*"], exclude, shouldEmbed, "assets");
+
+    if (!FEATURE_ANIMATION_EDITOR.isEnabled(this))
+    {
+      removeAssetPath('assets/preload/data/ui/animation-editor', "default");
+      removeAssetPath('assets-revival/preload/data/ui/animation-editor', "default");
+    }
 
     if (!FEATURE_CHART_EDITOR.isEnabled(this)) removeAssetPath('assets/preload/data/ui/chart-editor', "default");
 

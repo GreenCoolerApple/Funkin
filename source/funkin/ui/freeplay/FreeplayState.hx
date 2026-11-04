@@ -2769,6 +2769,7 @@ class FreeplayState extends MusicBeatSubState
 
     backingCard.confirm();
     fadeDots(false);
+    playConfirmEffects();
 
     // Start vibration after half of second.
     if (HapticUtil.hapticsAvailable)
@@ -2825,6 +2826,26 @@ class FreeplayState extends MusicBeatSubState
           // botPlayMode: true,
         }, true);
       });
+    });
+  }
+
+  /**
+   * Extra effects when a song is confirmed: the other capsules fade out,
+   * the screen flashes (if flashing lights are allowed) and the camera bumps.
+   */
+  function playConfirmEffects():Void
+  {
+    grpCapsules.forEachAlive((cap:SongMenuItem) ->
+    {
+      if (cap != currentCapsule) FlxTween.tween(cap, {alpha: 0.0}, 0.3, {ease: FlxEase.quadOut});
+    });
+
+    if (Preferences.flashingLights) funnyCam.flash(FlxColor.WHITE, 0.3);
+
+    final baseZoom:Float = funnyCam.zoom;
+    FlxTween.tween(funnyCam, {zoom: baseZoom * 1.06}, 0.12, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> FlxTween.tween(funnyCam, {zoom: baseZoom * 1.03}, 0.5, {ease: FlxEase.sineOut})
     });
   }
 

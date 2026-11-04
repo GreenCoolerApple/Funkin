@@ -589,6 +589,8 @@ class StoryMenuState extends MusicBeatState
       prop.playConfirm();
     }
 
+    playConfirmEffects();
+
     Paths.setCurrentLevel(currentLevel.id);
 
     PlayStatePlaylist.playlistSongIds = currentLevel.getSongs();
@@ -624,6 +626,26 @@ class StoryMenuState extends MusicBeatState
           targetVariation: targetVariation
         }, true);
       });
+    });
+  }
+
+  /**
+   * Extra effects when a level is chosen: the other levels fade out,
+   * the screen flashes (if flashing lights are allowed) and the camera bumps.
+   */
+  function playConfirmEffects():Void
+  {
+    levelTitles.forEach((title:LevelTitle) ->
+    {
+      if (title != currentLevelTitle) FlxTween.tween(title, {alpha: 0.0}, 0.3, {ease: FlxEase.quadOut});
+    });
+
+    if (Preferences.flashingLights) FlxG.camera.flash(FlxColor.WHITE, 0.3);
+
+    final baseZoom:Float = FlxG.camera.zoom;
+    FlxTween.tween(FlxG.camera, {zoom: baseZoom * 1.06}, 0.12, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> FlxTween.tween(FlxG.camera, {zoom: baseZoom * 1.03}, 0.5, {ease: FlxEase.sineOut})
     });
   }
 

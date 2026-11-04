@@ -262,6 +262,7 @@ class PolymodHandler
       funkin.Paths,
       funkin.Preferences,
       funkin.util.Constants,
+      funkin.util.ScriptUtil,
       flixel.FlxG
     ];
 

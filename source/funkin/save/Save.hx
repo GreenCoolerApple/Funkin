@@ -102,6 +102,8 @@ class Save implements ConsoleClass
         downscroll: false,
         middlescroll: false,
         cacheAssets: false,
+        cameraMovement: false,
+        highQualityGraphics: true,
         flashingLights: true,
         zoomCamera: true,
         debugDisplay: 'Off',
@@ -1134,6 +1136,18 @@ typedef SaveDataOptions =
    * @default `false`
    */
   var cacheAssets:Bool;
+
+  /**
+   * If enabled, the camera moves a little in the direction the focused character is singing.
+   * @default `false`
+   */
+  var cameraMovement:Bool;
+
+  /**
+   * If disabled, textures are not smoothed. This is faster, but looks pixelated.
+   * @default `true`
+   */
+  var highQualityGraphics:Bool;
 
   /**
    * If disabled, flashing lights in the main menu and other areas will be less intense.

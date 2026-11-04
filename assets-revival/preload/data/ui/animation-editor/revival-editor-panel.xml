@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Side panel of the Animation Editor.
+  This lives outside of the `assets` submodule on purpose, so it is versioned in this repository.
+  The ids `swapper`, `characterDropdown`, `animationDropdown` and `animationLabel` are used by DebugBoundingState.
+
+  Palette: panel #14171A, card #1B1F23, chip #2E3338, text #E6EAEE, dim text #B4BCC4, accent #5CC8FF.
+-->
+<collapsible-dialog id="toolboxCharacters" title="Character Editor" width="320" height="560">
+    <vbox width="100%" height="100%" style="padding: 10px; spacing: 10px; background-color: #14171A;">
+
+        <!-- Header -->
+        <vbox width="100%" style="spacing: 2px; padding: 4px 6px;">
+            <label text="Animation Editor" style="font-size: 20px; font-bold: true; color: #E6EAEE;" />
+            <label text="Edit the offsets of every animation" style="font-size: 11px; color: #B4BCC4;" />
+        </vbox>
+
+        <!-- View mode -->
+        <vbox width="100%" style="background-color: #1B1F23; border-radius: 8px; padding: 10px; spacing: 6px;">
+            <label text="VIEW" style="font-size: 10px; font-bold: true; color: #5CC8FF;" />
+            <dropdown id="swapper" width="100%" allowFocus="true">
+                <data>
+                    <item curView="SPRITESHEET" text="SPRITESHEET" />
+                    <item curView="ANIMATIONS" text="ANIMATIONS" />
+                </data>
+            </dropdown>
+        </vbox>
+
+        <!-- Character and animation -->
+        <vbox width="100%" style="background-color: #1B1F23; border-radius: 8px; padding: 10px; spacing: 6px;">
+            <label text="CHARACTER" style="font-size: 10px; font-bold: true; color: #5CC8FF;" />
+            <dropdown id="characterDropdown" width="100%" allowFocus="true">
+                <data />
+            </dropdown>
+            <label id="animationLabel" text="ANIMATION" style="font-size: 10px; font-bold: true; color: #5CC8FF;" />
+            <dropdown id="animationDropdown" width="100%" allowFocus="true">
+                <data />
+            </dropdown>
+        </vbox>
+
+        <!-- Shortcuts -->
+        <vbox width="100%" height="100%" style="background-color: #1B1F23; border-radius: 8px; padding: 10px; spacing: 6px;">
+            <label text="SHORTCUTS" style="font-size: 10px; font-bold: true; color: #5CC8FF;" />
+            <scroll-view width="100%" contentWidth="100%" height="100%" style="background-color: #1B1F23; border-size: 0px;">
+                <vbox width="100%" style="spacing: 5px;">
+
+                    <label text="General" style="font-size: 11px; font-bold: true; color: #E6EAEE;" />
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="F4" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Exit to main menu" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="H" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Show / hide UI" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="1" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Spritesheet mode" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="2" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Animation mode" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Middle click" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Pan" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Scroll" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Zoom" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+
+                    <spacer height="4" />
+                    <label text="Animations" style="font-size: 11px; font-bold: true; color: #E6EAEE;" />
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Q / [" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Previous animation" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="E / ]" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Next animation" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Enter" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Replay animation" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Space" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Play idle animation" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="WASD" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Sing (Shift: miss)" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+
+                    <spacer height="4" />
+                    <label text="Editing" style="font-size: 11px; font-bold: true; color: #E6EAEE;" />
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="F" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Toggle onion skin" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="G" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Flip horizontally" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Arrows" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Nudge offsets by 5" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Shift+Arrows" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Nudge by 10" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Ctrl+Arrows" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Nudge by 1" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Ctrl + S" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Save character data" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+                    <hbox style="spacing: 8px;"><box width="96" style="background-color: #2E3338; border-radius: 4px; padding: 3px 6px;"><label text="Ctrl+Shift+S" style="font-size: 11px; font-bold: true; color: #FFFFFF;" /></box><label text="Save offsets" style="font-size: 11px; color: #B4BCC4;" /></hbox>
+
+                </vbox>
+            </scroll-view>
+        </vbox>
+
+    </vbox>
+</collapsible-dialog>

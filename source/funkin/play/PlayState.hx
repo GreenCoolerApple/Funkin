@@ -17,6 +17,8 @@ import flixel.tweens.FlxTween;
 import flixel.tweens.FlxEase;
 import flixel.ui.FlxBar;
 import flixel.util.FlxColor;
+import funkin.util.ColorUtil;
+import funkin.util.MathUtil;
 import flixel.util.FlxStringUtil;
 import flixel.util.FlxTimer;
 import funkin.audio.FunkinSound;
@@ -1036,6 +1038,7 @@ class PlayState extends MusicBeatSubState
 
     updateHealthBar();
     updateScoreText();
+    updateCameraMovement(elapsed);
 
     // Handle restarting the song when needed (player death or pressing Retry)
     if (needsReset)
@@ -2005,14 +2008,14 @@ class PlayState extends MusicBeatSubState
     healthBar.parent = this;
     healthBar.parentVariable = 'healthLerp';
     healthBar.scrollFactor.set();
-    healthBar.createFilledBar(Constants.COLOR_HEALTH_BAR_RED, Constants.COLOR_HEALTH_BAR_GREEN);
+    applyHealthBarColors(Constants.COLOR_HEALTH_BAR_RED, Constants.COLOR_HEALTH_BAR_GREEN);
     healthBar.zIndex = 801;
     add(healthBar);
 
     // The score text below the health bar.
-    scoreText.x = healthBarBG.x + healthBarBG.width - 190;
+    scoreText.x = healthBarBG.x + ((healthBarBG.width - scoreText.width) / 2); // Kept centered in `updateScoreText`.
     scoreText.y = healthBarBG.y + 30;
-    scoreText.alignment = RIGHT;
+    scoreText.alignment = CENTER;
     scoreText.borderStyle = OUTLINE;
     scoreText.borderColor = FlxColor.BLACK;
     scoreText.letterSpacing = -1;
@@ -2039,6 +2042,72 @@ class PlayState extends MusicBeatSubState
 
       subtitles.cameras = [camSubtitles];
     }
+  }
+
+  /**
+   * The color of the opponent's side of the health bar.
+   */
+  public var healthBarOpponentColor(default, null):FlxColor = Constants.COLOR_HEALTH_BAR_RED;
+
+  /**
+   * The color of the player's side of the health bar.
+   */
+  public var healthBarPlayerColor(default, null):FlxColor = Constants.COLOR_HEALTH_BAR_GREEN;
+
+  var healthBarColorTween:Null<FlxTween> = null;
+
+  /**
+   * Sets the colors of the health bar. Can be called from scripts.
+   * @param opponent The color of the opponent's side (the left side).
+   * @param player The color of the player's side (the right side).
+   */
+  public function setHealthBarColors(opponent:FlxColor, player:FlxColor):Void
+  {
+    healthBarColorTween?.cancel();
+    healthBarColorTween = null;
+    applyHealthBarColors(opponent, player);
+  }
+
+  /**
+   * Smoothly changes the colors of the health bar. Can be called from scripts.
+   * @param opponent The color of the opponent's side (the left side).
+   * @param player The color of the player's side (the right side).
+   * @param duration How long the transition lasts, in seconds.
+   */
+  public function tweenHealthBarColors(opponent:FlxColor, player:FlxColor, duration:Float = 0.5):Void
+  {
+    healthBarColorTween?.cancel();
+
+    final fromOpponent:FlxColor = healthBarOpponentColor;
+    final fromPlayer:FlxColor = healthBarPlayerColor;
+
+    healthBarColorTween = FlxTween.num(0.0, 1.0, duration, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> healthBarColorTween = null
+    }, function(t:Float):Void
+      {
+        applyHealthBarColors(FlxColor.interpolate(fromOpponent, opponent, t), FlxColor.interpolate(fromPlayer, player, t));
+      });
+  }
+
+  /**
+   * Sets the health bar colors back to the ones from the characters' health icons.
+   * Can be called from scripts.
+   */
+  public function resetHealthBarColors():Void
+  {
+    final opponent:FlxColor = iconP2?.getBarColor() ?? Constants.COLOR_HEALTH_BAR_RED;
+    final player:FlxColor = iconP1?.getBarColor() ?? Constants.COLOR_HEALTH_BAR_GREEN;
+
+    // Both sides of the bar must be easy to tell apart, even when both characters use similar colors.
+    setHealthBarColors(ColorUtil.ensureContrast(player, opponent), player);
+  }
+
+  function applyHealthBarColors(opponent:FlxColor, player:FlxColor):Void
+  {
+    healthBarOpponentColor = opponent;
+    healthBarPlayerColor = player;
+    healthBar.createFilledBar(opponent, player);
   }
 
   /**
@@ -2234,6 +2303,9 @@ class PlayState extends MusicBeatSubState
       // Rearrange by z-indexes.
       currentStage.refresh();
     }
+
+    // Both health icons are configured now, so the health bar can use their colors.
+    resetHealthBarColors();
   }
 
   /**
@@ -2763,8 +2835,103 @@ class PlayState extends MusicBeatSubState
     {
       final SHOW_DECIMALS:Bool = false;
       final COMMA_SEPARATED:Bool = true;
-      scoreText.text = 'Score: ${FlxStringUtil.formatMoney(songScore, SHOW_DECIMALS, COMMA_SEPARATED)}';
+
+      final tallies = Highscore.tallies;
+      final notesPlayed:Int = tallies.sick + tallies.good + tallies.bad + tallies.shit + tallies.missed;
+
+      var rating:String = '--';
+      var rank:String = '--';
+      if (notesPlayed > 0)
+      {
+        // How well the notes played so far were hit, with every judgement worth a different amount.
+        final accuracy:Float = (tallies.sick + (tallies.good * 0.75) + (tallies.bad * 0.5) + (tallies.shit * 0.25)) / notesPlayed;
+        rating = '${FlxMath.roundDecimal(accuracy * 100, 2)}%';
+
+        // Same ranks as the results screen, but only counting the notes played so far.
+        final completion:Float = Math.max(0, Math.min(1, (tallies.sick + tallies.good - tallies.missed) / notesPlayed));
+        if (tallies.sick == notesPlayed || completion >= Constants.RANK_PERFECT_THRESHOLD) rank = 'Perfect';
+        else if (completion >= Constants.RANK_EXCELLENT_THRESHOLD) rank = 'Excellent';
+        else if (completion >= Constants.RANK_GREAT_THRESHOLD) rank = 'Great';
+        else if (completion >= Constants.RANK_GOOD_THRESHOLD) rank = 'Good';
+        else
+          rank = 'Loss';
+      }
+
+      scoreText.text = 'Score: ${FlxStringUtil.formatMoney(songScore, SHOW_DECIMALS, COMMA_SEPARATED)} | Misses: ${tallies.missed} | Rating: $rating | Rank: $rank';
     }
+
+    // The text changes width as the numbers change, so keep it centered under the health bar.
+    scoreText.x = healthBarBG.x + ((healthBarBG.width - scoreText.width) / 2);
+  }
+
+  /**
+   * How far, in pixels, the camera moves in the direction a character is singing, when Camera Movement is enabled.
+   */
+  static final CAMERA_MOVEMENT_DISTANCE:Float = 25.0;
+
+  /**
+   * How far the camera is currently moved away from the follow point by Camera Movement.
+   */
+  var cameraMovementOffset:FlxPoint = FlxPoint.get();
+
+  /**
+   * Moves the camera a little in the direction the focused character is singing, if Camera Movement is enabled.
+   */
+  function updateCameraMovement(elapsed:Float):Void
+  {
+    // Only touch the camera while it follows the follow point, so tweens, the results transition and game over are left alone.
+    if (FlxG.camera.target != cameraFollowPoint) return;
+
+    var targetX:Float = 0.0;
+    var targetY:Float = 0.0;
+
+    if (Preferences.cameraMovement && !isGameOverState)
+    {
+      final animation:String = getFocusedCharacter()?.getCurrentAnimation() ?? '';
+
+      if (animation.indexOf('singLEFT') == 0) targetX = -CAMERA_MOVEMENT_DISTANCE;
+      else if (animation.indexOf('singRIGHT') == 0) targetX = CAMERA_MOVEMENT_DISTANCE;
+      else if (animation.indexOf('singUP') == 0) targetY = -CAMERA_MOVEMENT_DISTANCE;
+      else if (animation.indexOf('singDOWN') == 0) targetY = CAMERA_MOVEMENT_DISTANCE;
+    }
+
+    // Nothing to do when the camera is already centered and nobody is singing.
+    if (cameraMovementOffset.x == 0.0 && cameraMovementOffset.y == 0.0 && targetX == 0.0 && targetY == 0.0) return;
+
+    cameraMovementOffset.x = MathUtil.smoothLerpPrecision(cameraMovementOffset.x, targetX, elapsed, 0.3);
+    cameraMovementOffset.y = MathUtil.smoothLerpPrecision(cameraMovementOffset.y, targetY, elapsed, 0.3);
+
+    // `smoothLerpPrecision` never quite arrives, so snap once it is close enough.
+    if (Math.abs(cameraMovementOffset.x - targetX) < 0.05) cameraMovementOffset.x = targetX;
+    if (Math.abs(cameraMovementOffset.y - targetY) < 0.05) cameraMovementOffset.y = targetY;
+
+    FlxG.camera.targetOffset.set(cameraMovementOffset.x, cameraMovementOffset.y);
+  }
+
+  /**
+   * Gets the character the camera is focused on, which is the one closest to the camera follow point.
+   */
+  function getFocusedCharacter():Null<BaseCharacter>
+  {
+    var closest:Null<BaseCharacter> = null;
+    var closestDistance:Float = Math.POSITIVE_INFINITY;
+
+    for (character in [currentStage?.getDad(), currentStage?.getBoyfriend(), currentStage?.getGirlfriend()])
+    {
+      if (character == null) continue;
+
+      final dx:Float = character.cameraFocusPoint.x - cameraFollowPoint.x;
+      final dy:Float = character.cameraFocusPoint.y - cameraFollowPoint.y;
+      final distance:Float = (dx * dx) + (dy * dy);
+
+      if (distance < closestDistance)
+      {
+        closest = character;
+        closestDistance = distance;
+      }
+    }
+
+    return closest;
   }
 
   /**

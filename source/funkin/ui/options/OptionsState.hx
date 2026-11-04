@@ -28,6 +28,8 @@ import funkin.mobile.ui.options.ControlsSchemeMenu;
 #if FEATURE_MOBILE_IAP
 import funkin.mobile.util.InAppPurchasesUtil;
 #end
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
 
 /**
@@ -167,6 +169,7 @@ class OptionsMenu extends Page<OptionsMenuPageName>
   {
     super();
     add(items = new TextMenuList());
+    items.onAcceptPress.add(playConfirmAnimation);
 
     createItem('PREFERENCES', function() codex.switchPage(Preferences));
     #if mobile
@@ -274,6 +277,60 @@ class OptionsMenu extends Page<OptionsMenuPageName>
     camFocusPoint.y = selected.y;
   }
 
+  /**
+   * Whether the confirm animation is playing, or has played and still has to be undone.
+   */
+  var confirming:Bool = false;
+
+  /**
+   * The camera zoom before the confirm animation started, so it can be restored.
+   */
+  var confirmBaseZoom:Float = 1.0;
+
+  /**
+   * Plays the animation of choosing an option: the other options fade out,
+   * the screen flashes and the camera zooms in a little.
+   */
+  function playConfirmAnimation(selected:TextMenuItem):Void
+  {
+    // Items that open instantly have no time for an animation.
+    if (selected.fireInstantly) return;
+
+    confirming = true;
+    confirmBaseZoom = FlxG.camera.zoom;
+
+    for (item in items.members)
+    {
+      if (item != selected) FlxTween.tween(item, {alpha: 0.0}, 0.3, {ease: FlxEase.quadOut});
+    }
+
+    // A quick flash, if flashing lights are allowed, and a camera bump that settles back before the next page opens.
+    if (funkin.Preferences.flashingLights) FlxG.camera.flash(FlxColor.WHITE, 0.3);
+    FlxTween.tween(FlxG.camera, {zoom: confirmBaseZoom * 1.06}, 0.12, {
+      ease: FlxEase.quadOut,
+      onComplete: _ -> FlxTween.tween(FlxG.camera, {zoom: confirmBaseZoom}, 0.7, {ease: FlxEase.sineOut})
+    });
+  }
+
+  /**
+   * Undoes the confirm animation, for when this page is shown again after choosing an option that opens another page.
+   */
+  function resetConfirmAnimation():Void
+  {
+    confirming = false;
+
+    FlxTween.cancelTweensOf(FlxG.camera, ['zoom']);
+    FlxG.camera.zoom = confirmBaseZoom;
+
+    for (i in 0...items.members.length)
+    {
+      final item:TextMenuItem = items.members[i];
+      FlxTween.cancelTweensOf(item, ['alpha']);
+      // The selected item is fully visible and the others are dimmed, same as in `MenuListItem`.
+      item.alpha = (i == items.selectedIndex) ? 1.0 : 0.6;
+    }
+  }
+
   function createItem(name:String, callback:Void->Void, fireInstantly = false):TextMenuItem
   {
     var item = items.createItem(0, 100 + items.length * 100, name, BOLD, callback);
@@ -292,6 +349,10 @@ class OptionsMenu extends Page<OptionsMenuPageName>
     #if FEATURE_TOUCH_CONTROLS
     backButton.active = (!goingBack) ? !items.busy : true;
     #end
+
+    // The page stops updating while another page is shown, so this is reached again once this one is back.
+    if (confirming && !items.busy) resetConfirmAnimation();
+
     super.update(elapsed);
   }
 
