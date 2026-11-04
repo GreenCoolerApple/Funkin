@@ -2263,6 +2263,13 @@ class PlayState extends MusicBeatSubState
     opponentStrumline.zIndex = 1000;
     opponentStrumline.cameras = [camHUD];
 
+    if (Preferences.middlescroll)
+    {
+      // Center the player's strumline and hide the opponent's one (its notes are still processed).
+      playerStrumline.x = (FlxG.width - playerStrumline.width) / 2;
+      opponentStrumline.visible = false;
+    }
+
     #if mobile
     if (Preferences.controlsScheme == FunkinHitboxControlSchemes.Arrows && !ControlsHandler.hasExternalInputDevice)
     {

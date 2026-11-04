@@ -1,5 +1,5 @@
 # Builds the game for every supported platform on GitHub-hosted runners.
-# Unlike build-game.yml, this needs no private runners, secrets or itch.io upload,
+# Uses only GitHub-hosted runners and no secrets or itch.io upload,
 # so it works on a personal fork.
 
 name: Build all platforms
@@ -98,12 +98,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Installs the Android command-line tools (sdkmanager) and the packages below.
+      # The latest NDK is not compatible with Lime, so pin the version from docs/COMPILING_MOBILE.md.
       - name: Setup Android SDK and NDK
         if: ${{ matrix.target == 'android' }}
-        run: |
-          # The latest NDK is not compatible with Lime, so pin the version from docs/COMPILING_MOBILE.md.
-          sdkmanager --install "build-tools;35.0.0" "ndk;29.0.13113456" "platforms;android-29" "platforms;android-35"
-          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/29.0.13113456" >> "$GITHUB_ENV"
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'build-tools;35.0.0 ndk;29.0.13113456 platforms;android-29 platforms;android-35'
 
       - name: Install patched haxelib and hmm
         run: |
@@ -135,6 +136,13 @@ jobs:
       - name: Setup Lime
         run: |
           haxelib --always run lime setup
+
+      - name: Configure Lime for Android
+        if: ${{ matrix.target == 'android' }}
+        run: |
+          haxelib run lime config ANDROID_SDK "$ANDROID_HOME"
+          haxelib run lime config ANDROID_NDK_ROOT "$ANDROID_HOME/ndk/29.0.13113456"
+          haxelib run lime config JAVA_HOME "$JAVA_HOME"
 
       - name: Restore lime natives cache
         if: ${{ matrix.target != 'html5' && matrix.target != 'android' }}

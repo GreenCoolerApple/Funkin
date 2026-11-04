@@ -100,6 +100,7 @@ class Save implements ConsoleClass
         framerate: #if mobile refreshRate #else 60 #end,
         naughtyness: true,
         downscroll: false,
+        middlescroll: false,
         flashingLights: true,
         zoomCamera: true,
         debugDisplay: 'Off',
@@ -1120,6 +1121,12 @@ typedef SaveDataOptions =
    * @default `false`
    */
   var downscroll:Bool;
+
+  /**
+   * If enabled, the player's strumline is centered on the screen and the opponent's strumline is hidden.
+   * @default `false`
+   */
+  var middlescroll:Bool;
 
   /**
    * If disabled, flashing lights in the main menu and other areas will be less intense.
